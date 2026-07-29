@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from projects.caliper.orchestration.censoring import censor_text
+
 from projects.core.ci_entrypoint.prepare_ci import CI_METADATA_DIRNAME
 from projects.core.library import ci as ci_lib
 from projects.core.library import config, env
