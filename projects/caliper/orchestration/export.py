@@ -21,9 +21,11 @@ from pydantic import ValidationError
 from projects.caliper.engine.file_export.artifacts_export_run import (
     discover_run_dirs,
     run_artifacts_export,
-    run_multi_run_artifacts_export,
 )
-from projects.caliper.engine.file_export.mlflow_config import load_mlflow_config_yaml
+from projects.caliper.engine.file_export.mlflow_config import (
+    load_mlflow_config_yaml,
+    project_metadata_fields,
+)
 from projects.caliper.orchestration.censoring import (
     orchestration_apply_censoring,
 )
@@ -38,12 +40,6 @@ logger = logging.getLogger(__name__)
 
 class CaliperExportError(Exception):
     """Base exception for Caliper export errors."""
-
-    pass
-
-
-class CensoringOccurredException(CaliperExportError):
-    """Exception raised when censoring occurs during export."""
 
     pass
 
@@ -274,7 +270,9 @@ def run_from_orchestration_config(
             mock_status = {
                 "success": True,
                 "final_status": "success",
-                "backends": {"mlflow": {"success": True, "run_id": "mock-disabled-export-id"}},
+                "caliper_artifacts_export": {
+                    "backends": {"mlflow": {"success": True, "run_id": "mock-disabled-export-id"}},
+                },
                 "duration": "0 seconds (export disabled)",
                 "censoring_occurred": censoring_occurred,
             }
@@ -293,10 +291,6 @@ def run_from_orchestration_config(
             )
             if ret != 0:
                 raise ExportFailedException(f"Artifacts export failed (ret code = {ret})")
-
-        # Check for censoring in single-run export
-        if censoring_occurred:
-            raise CensoringOccurredException("Files were censored during export")
 
     with open(status_yaml) as f:
         status = yaml.safe_load(f.read())
@@ -347,7 +341,6 @@ def _run_multi_run_export(
 
     Raises:
         ExportFailedException: If the export fails
-        CensoringOccurredException: If files were censored during export
     """
     import sys
     import traceback
@@ -488,7 +481,3 @@ def _run_multi_run_export(
 
     if any(r.status == "failure" for r in results):
         raise ExportFailedException("MLflow backend export failed")
-
-    if censoring_occurred:
-        raise CensoringOccurredException("Files were censored during export")
->>>>>>> c6e61d47 ([caliper] orchestration: integrate the censoring)
